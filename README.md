@@ -2,10 +2,10 @@
 
 [![CI](https://github.com/siddhant-tandale/PathPilot/actions/workflows/ci.yml/badge.svg)](https://github.com/siddhant-tandale/PathPilot/actions/workflows/ci.yml)
 
-Six motion planners, written from scratch in Python, compared on the same seeded maps:
-**A\***, **Dijkstra**, **weighted A\***, **RRT**, **RRT\***, and **PRM**.
+Seven motion planners, written from scratch in Python, compared on the same seeded maps:
+**A\***, **Dijkstra**, **weighted A\***, **Theta\***, **RRT**, **RRT\***, and **PRM**.
 
-![All six planners searching the same map](docs/demo.gif)
+![All seven planners searching the same map](docs/demo.gif)
 
 Each panel shows one planner's search on the same 50x50 map. Grid planners show the cells they
 expanded; sampling planners show their tree or roadmap. Panels are time-normalized so they finish
@@ -20,12 +20,13 @@ Medians over maps. Path cost is relative to A* on the same map.
 
 | Planner | Success | Path cost vs A* | Runtime (ms) | Collision checks | Nodes |
 |---|---:|---:|---:|---:|---:|
-| A* | 100% | 1.000 | 3.4 | 3,498 | 424 |
-| Dijkstra | 100% | 1.000 | 11.4 | 14,561 | 1,850 |
-| Weighted A* (w=2) | 100% | 1.011 | 0.7 | 836 | 72 |
-| RRT | 100% | 1.175 | 14.3 | 809 | 204 |
-| RRT* | 100% | 0.945 | 421.5 | 10,662 | 2,114 |
-| PRM | 98% | 1.001 | 80.0 | 4,330 | 602 |
+| A* | 100% | 1.000 | 3.3 | 3,498 | 424 |
+| Dijkstra | 100% | 1.000 | 11.3 | 14,561 | 1,850 |
+| Weighted A* (w=2) | 100% | 1.011 | 0.8 | 836 | 72 |
+| Theta* | 100% | 0.951 | 16.8 | 5,431 | 432 |
+| RRT | 100% | 1.175 | 16.2 | 809 | 204 |
+| RRT* | 100% | 0.945 | 422.2 | 10,662 | 2,114 |
+| PRM | 98% | 1.001 | 80.4 | 4,330 | 602 |
 
 Per-density tables are in [`results/summary.md`](results/summary.md) and every individual run is in
 [`results/benchmark.csv`](results/benchmark.csv).
@@ -40,9 +41,14 @@ Per-density tables are in [`results/summary.md`](results/summary.md) and every i
   nodes than A*.
 - **RRT\* beats "optimal" A\* by 5.5%.** A* is only optimal on the 8-connected grid graph, where
   every move is horizontal, vertical, or 45 degrees. RRT* plans in continuous space, so its paths
-  can go at any angle. The price is time: about 120x slower than A* here.
+  can go at any angle. The price is time: about 130x slower than A* here.
+- **Almost all of that gain is from any-angle paths, not from sampling.** Theta* is A* with one
+  change: a node may take its parent's parent as its own parent whenever there is a clear line of
+  sight, so paths bend only at obstacle corners. That alone gets within 0.6% of RRT* (0.951 vs
+  0.945), never does worse than A* on any of the 60 maps, and runs about 25x faster than RRT*.
 - **RRT\* keeps improving after its first solution.** That is the asymptotic optimality property:
-  rewiring keeps shortening the path as samples are added.
+  rewiring keeps shortening the path as samples are added. It only gets past Theta* in the last
+  third of its 3,000-iteration budget.
 
   ![RRT* convergence](docs/rrt_star_convergence.png)
 
@@ -64,6 +70,10 @@ their sample budgets. This is the **narrow passage problem**: uniform random sam
 land inside a gap that is one cell wide, so the tree or roadmap cannot get through it. Fixes from
 the literature include bridge sampling, Gaussian sampling near obstacles, and planning on a coarser
 or inflated map.
+
+Theta* is the useful contrast here: it searches the grid systematically, so it goes through every
+gap A* goes through, and it still shortens paths (0.959 of A*). RRT*'s 0.929 on these maps looks
+better but is only measured over the 60% of maps it solved.
 
 ## Design decisions
 
@@ -101,7 +111,7 @@ python -m pathpilot benchmark --maps 20
 python -m pathpilot animate --seed 4
 ```
 
-Planners: `astar`, `dijkstra`, `wastar`, `rrt`, `rrt_star`, `prm`. Map options: `--size`,
+Planners: `astar`, `dijkstra`, `wastar`, `theta_star`, `rrt`, `rrt_star`, `prm`. Map options: `--size`,
 `--density`, `--style blocks|noise`, `--seed`.
 
 From Python:
@@ -123,7 +133,8 @@ pytest
 ```
 
 The suite checks that every planner returns a collision-free path, that A* matches Dijkstra's cost
-while expanding no more nodes, that weighted A* stays within its bound, that RRT*'s best cost never
+while expanding no more nodes, that weighted A* stays within its bound, that Theta* draws a single
+straight line in open space and is never longer than A*, that RRT*'s best cost never
 increases, and that every RRT* node's stored cost still matches its true path length after
 rewiring (the easy-to-miss bug in RRT* implementations). CI runs lint, tests, and a CLI smoke test
 on Python 3.10 and 3.12.
@@ -135,6 +146,7 @@ pathpilot/
   grid.py              occupancy grid, map generation, collision checking
   planners/
     grid_search.py     A*, weighted A*, Dijkstra (one best-first search, three priorities)
+    theta_star.py      Theta*, any-angle A* with line-of-sight parents
     rrt.py             RRT and RRT*
     prm.py             probabilistic roadmap
     base.py            shared PlanResult and timing wrapper
@@ -146,7 +158,7 @@ tests/                 pytest suite
 
 ## Next steps
 
-- Theta* (any-angle grid search), to separate "any-angle paths" from "sampling" in the RRT* result
+- Lazy Theta*, which skips most line-of-sight checks and would close the runtime gap to A*
 - Path shortcutting for RRT and PRM output
 - A k-d tree for nearest-neighbor queries, which are currently brute force
 - Kinodynamic planning for a differential-drive robot instead of a point
@@ -154,8 +166,8 @@ tests/                 pytest suite
 ## Background
 
 PathPilot started as my individual project in ENGR 133 at Purdue (Fall 2025): A* on a random
-occupancy grid. Version 0.2 rewrites it as a package and adds the other five planners, the
-benchmark, and the test suite.
+occupancy grid. Version 0.2 rewrites it as a package and adds the other planners, the benchmark,
+and the test suite.
 
 ## References
 
@@ -164,6 +176,7 @@ benchmark, and the test suite.
 - Karaman, Frazzoli. Sampling-based algorithms for optimal motion planning (2011)
 - Kavraki, Svestka, Latombe, Overmars. Probabilistic roadmaps for path planning in high-dimensional
   configuration spaces (1996)
+- Nash, Daniel, Koenig, Felner. Theta*: any-angle path planning on grids (2007)
 - Amanatides, Woo. A fast voxel traversal algorithm for ray tracing (1987)
 
 ## License

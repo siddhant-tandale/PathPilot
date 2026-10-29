@@ -26,6 +26,7 @@ COLORS = {
     "RRT": "#eda100",
     "RRT*": "#e87ba4",
     "PRM": "#008300",
+    "Theta*": "#6250d6",
 }
 SURFACE = "#fcfcfb"
 OBSTACLE = "#3a3a38"
@@ -187,7 +188,8 @@ def plot_benchmark(summary: list[dict], out: Path, title: str) -> None:
 
 
 def plot_convergence(histories: list[list[tuple[int, float]]],
-                     ref_costs: list[float], out: Path, title: str) -> None:
+                     ref_costs: list[float], out: Path, title: str,
+                     theta_ratio: float | None = None) -> None:
     """RRT* best path cost (relative to A*) versus iteration, median and IQR."""
     iters = np.array([it for it, _ in histories[0]])
     ratios = np.array([[c / ref for _, c in h] for h, ref in zip(histories, ref_costs)])
@@ -209,6 +211,11 @@ def plot_convergence(histories: list[list[tuple[int, float]]],
     ax.axhline(1.0, color=TEXT_2, lw=1, ls=(0, (3, 3)))
     ax.text(x[-1], 1.0, "A* on the 8-connected grid ", ha="right", va="bottom",
             fontsize=9, color=TEXT_2)
+    if theta_ratio is not None:
+        tc = color_for("Theta*")
+        ax.axhline(theta_ratio, color=tc, lw=1.5, ls=(0, (5, 3)))
+        ax.text(x[len(x) // 2], theta_ratio, f"Theta* median {theta_ratio:.3f}",
+                ha="center", va="bottom", fontsize=9, color=TEXT)
     ax.annotate(f"median {med[-1]:.3f}", (x[-1], med[-1]), xytext=(0, -14),
                 textcoords="offset points", ha="right", fontsize=9, color=TEXT)
     ax.text(x[0], q3[0], "  middle 50% of maps", va="bottom", fontsize=9,
@@ -235,7 +242,7 @@ def animate(problem: Problem, results: list[PlanResult], out: Path,
     import imageio.v2 as imageio
 
     n = len(results)
-    cols = 3
+    cols = 3 if n <= 6 else 4
     rows = math.ceil(n / cols)
     images = []
     for f in range(frames + hold):

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pathpilot"
 version = "0.3.0"
-description = "Grid and sampling-based motion planners (A*, Dijkstra, weighted A*, RRT, RRT*, PRM) with a reproducible benchmark"
+description = "Grid and sampling-based motion planners (A*, Dijkstra, weighted A*, Theta*, RRT, RRT*, PRM) with a reproducible benchmark"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Siddhant Tandale" }]

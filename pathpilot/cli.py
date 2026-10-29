@@ -57,7 +57,8 @@ def cmd_benchmark(args) -> None:
     blocks = bm.summarize(rows, style="blocks")
     n_blocks = len({(r.density, r.seed) for r in rows if r.style == "blocks"})
     plot_benchmark(blocks, figs / "benchmark.png",
-                   f"Six planners on {n_blocks} random {args.size}x{args.size} maps (medians)")
+                   f"{len(blocks)} planners on {n_blocks} random "
+                   f"{args.size}x{args.size} maps (medians)")
     noise = bm.summarize(rows, style="noise")
     if noise:
         n_noise = len({r.seed for r in rows if r.style == "noise"})
@@ -73,8 +74,10 @@ def cmd_benchmark(args) -> None:
         res = rrt_star(p, seed=seed, snapshot_every=0)
         histories.append(res.extra["cost_history"])
         refs.append(ref)
+    theta = next((s["cost_ratio"] for s in blocks if s["planner"] == "Theta*"), None)
     plot_convergence(histories, refs, figs / "rrt_star_convergence.png",
-                     f"RRT* keeps shortening its path ({len(refs)} maps)")
+                     f"RRT* keeps shortening its path ({len(refs)} maps)",
+                     theta_ratio=theta)
     print(f"saved figures to {figs}/")
 
 
