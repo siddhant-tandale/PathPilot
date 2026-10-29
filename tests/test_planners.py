@@ -115,3 +115,20 @@ def test_collision_checks_are_counted():
     p = random_problem(seed=0, density=0.2)
     for key in PLANNERS:
         assert solve(key, p).checks > 0
+
+
+def test_theta_star_is_a_straight_line_in_open_space():
+    p = Problem(GridMap(np.zeros((30, 30))), (2.5, 3.5), (25.5, 11.5))
+    r = solve("theta_star", p)
+    assert len(r.path) == 2
+    assert r.cost == pytest.approx(math.dist(p.start, p.goal))
+
+
+def test_theta_star_never_longer_than_astar():
+    for seed in range(10):
+        p = random_problem(seed=seed, density=0.3)
+        a = solve("astar", p)
+        t = solve("theta_star", p)
+        assert t.cost <= a.cost + 1e-9
+        # Any-angle paths only bend at obstacles, so far fewer waypoints.
+        assert len(t.path) < len(a.path)

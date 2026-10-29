@@ -9,11 +9,13 @@ from .base import PlanResult, run_planner
 from .grid_search import astar, dijkstra, weighted_astar
 from .prm import prm
 from .rrt import rrt, rrt_star
+from .theta_star import theta_star
 
 PLANNERS = {
     "astar": astar,
     "dijkstra": dijkstra,
     "wastar": weighted_astar,
+    "theta_star": theta_star,
     "rrt": rrt,
     "rrt_star": rrt_star,
     "prm": prm,
@@ -23,4 +25,5 @@ PLANNERS = {
 SAMPLING = {"rrt", "rrt_star", "prm"}
 
 __all__ = ["PLANNERS", "SAMPLING", "PlanResult", "run_planner",
-           "astar", "dijkstra", "weighted_astar", "rrt", "rrt_star", "prm"]
+           "astar", "dijkstra", "weighted_astar", "theta_star", "rrt", "rrt_star",
+           "prm"]
