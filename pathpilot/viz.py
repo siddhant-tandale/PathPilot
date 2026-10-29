@@ -265,7 +265,8 @@ def animate(problem: Problem, results: list[PlanResult], out: Path,
             ax.set_title(f"{r.planner}\n{count}", loc="left", fontsize=10)
         for ax in np.atleast_1d(axes).ravel()[n:]:
             ax.axis("off")
-        fig.tight_layout(h_pad=1.6)
+        fig.subplots_adjust(left=0.01, right=0.99, top=0.93, bottom=0.01,
+                            wspace=0.06, hspace=0.22)
         fig.canvas.draw()
         images.append(np.asarray(fig.canvas.buffer_rgba())[..., :3].copy())
         plt.close(fig)
